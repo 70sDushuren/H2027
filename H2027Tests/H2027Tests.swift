@@ -66,3 +66,21 @@ struct ScheduleEngineTests {
         #expect(ScheduleEngine.effectiveStatus(for: dose, now: .now) == .taken)
     }
 }
+
+struct MedicationReferenceCatalogTests {
+    @Test
+    func referenceIdentifiersAreUnique() {
+        let identifiers = MedicationReferenceCatalog.entries.map(\.id)
+        #expect(Set(identifiers).count == identifiers.count)
+    }
+
+    @Test
+    func everyReferenceHasTraceableSourceAndStrength() {
+        for entry in MedicationReferenceCatalog.entries {
+            #expect(!entry.commonStrengths.isEmpty)
+            #expect(!entry.sourceTitle.isEmpty)
+            #expect(entry.sourceURL.scheme == "https")
+            #expect(!entry.regions.isEmpty)
+        }
+    }
+}

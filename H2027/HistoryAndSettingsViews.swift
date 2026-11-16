@@ -65,11 +65,19 @@ struct SettingsView: View {
     @AppStorage("wakeHour") private var wakeHour = 7
     @AppStorage("bedHour") private var bedHour = 22
     @AppStorage("defaultGracePeriod") private var defaultGracePeriod = 120
+    @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
     @State private var notificationManager = NotificationManager.shared
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("语言") {
+                    Picker("应用语言", selection: $appLanguageCode) {
+                        ForEach(AppLanguage.allCases) { language in
+                            Text(language.nativeTitle).tag(language.rawValue)
+                        }
+                    }
+                }
                 Section("作息") {
                     Stepper("起床时间：\(wakeHour):00", value: $wakeHour, in: 0...23)
                     Stepper("睡前提醒：\(bedHour):00", value: $bedHour, in: 0...23)

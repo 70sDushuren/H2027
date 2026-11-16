@@ -105,15 +105,38 @@ struct ScheduleRow: View {
 struct AddMedicationView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Medication.modifiedAt, order: .reverse) private var savedMedications: [Medication]
     @State private var name = ""
     @State private var kind = MedicationKind.prescription
     @State private var dosage = 1.0
     @State private var unit = "片"
     @State private var notes = ""
+    @State private var isPresentingReference = false
+    @State private var selectedReference: MedicationReference?
 
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Button("从常用药参考中选择", systemImage: "books.vertical") {
+                        isPresentingReference = true
+                    }
+                } footer: {
+                    Text("参考资料不会自动成为处方，保存前请对照药袋确认。")
+                }
+                if !savedMedications.isEmpty {
+                    Section("我的常用") {
+                        ForEach(savedMedications.prefix(5)) { medication in
+                            Button(medication.name) {
+                                name = medication.name
+                                kind = medication.kind
+                                dosage = medication.dosage
+                                unit = medication.unit
+                                notes = medication.notes
+                            }
+                        }
+                    }
+                }
                 Section("基本信息") {
                     TextField("药品名称", text: $name)
                     Picker("类型", selection: $kind) {
@@ -128,12 +151,30 @@ struct AddMedicationView: View {
                     }
                     TextField("备注（可选）", text: $notes, axis: .vertical)
                 }
+                if let selectedReference {
+                    Section("已选参考") {
+                        Text(selectedReference.exampleUse)
+                        Text(selectedReference.mealGuidance)
+                        Link("查看官方来源", destination: selectedReference.sourceURL)
+                    }
+                }
                 Section {
                     Label("包装扫描将在下一阶段加入；识别结果必须由你确认。", systemImage: "camera.viewfinder")
                         .foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("添加药品")
+            .sheet(isPresented: $isPresentingReference) {
+                MedicationReferencePicker { reference in
+                    selectedReference = reference
+                    name = reference.genericName
+                    if let strength = reference.commonStrengths.first {
+                        let parts = strength.split(separator: " ")
+                        dosage = Double(parts.first ?? "1") ?? 1
+                        unit = parts.dropFirst().joined(separator: " ")
+                    }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {

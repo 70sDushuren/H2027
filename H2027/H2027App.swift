@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct H2027App: App {
     private let modelContainer: ModelContainer
+    @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
 
     init() {
         let schema = Schema([Medication.self, MedicationSchedule.self, DoseEvent.self])
@@ -20,6 +21,7 @@ struct H2027App: App {
 
     var body: some Scene {
         WindowGroup { ContentView() }
+            .environment(\.locale, AppLanguage(rawValue: appLanguageCode)?.locale ?? .current)
             .modelContainer(modelContainer)
     }
 }
