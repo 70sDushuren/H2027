@@ -3,16 +3,20 @@ import SwiftUI
 
 @main
 struct H2027App: App {
-    private let modelContainer: ModelContainer = {
+    private let modelContainer: ModelContainer
+
+    init() {
         let schema = Schema([Medication.self, MedicationSchedule.self, DoseEvent.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [configuration])
+            let container = try ModelContainer(for: schema, configurations: [configuration])
+            modelContainer = container
+            NotificationManager.shared.configure(modelContainer: container)
         } catch {
             fatalError("Could not create model container: \(error)")
         }
-    }()
+    }
 
     var body: some Scene {
         WindowGroup { ContentView() }

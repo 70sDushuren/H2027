@@ -175,13 +175,26 @@ struct AddScheduleView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         let components = Calendar.current.dateComponents([.hour, .minute], from: time)
-                        modelContext.insert(MedicationSchedule(
+                        let schedule = MedicationSchedule(
                             medicationID: medication.id,
                             hour: components.hour ?? 8,
                             minute: components.minute ?? 0,
                             gracePeriodMinutes: gracePeriodMinutes,
                             mealNote: mealNote
-                        ))
+                        )
+                        modelContext.insert(schedule)
+                        Task {
+                            await NotificationManager.shared.scheduleMedicationReminder(
+                                scheduleID: schedule.id,
+                                medicationID: medication.id,
+                                medicationName: medication.name,
+                                dosage: medication.dosage,
+                                unit: medication.unit,
+                                hour: schedule.hour,
+                                minute: schedule.minute,
+                                weekdays: schedule.weekdayNumbers
+                            )
+                        }
                         dismiss()
                     }
                 }

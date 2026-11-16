@@ -65,6 +65,7 @@ struct SettingsView: View {
     @AppStorage("wakeHour") private var wakeHour = 7
     @AppStorage("bedHour") private var bedHour = 22
     @AppStorage("defaultGracePeriod") private var defaultGracePeriod = 120
+    @State private var notificationManager = NotificationManager.shared
 
     var body: some View {
         NavigationStack {
@@ -75,7 +76,24 @@ struct SettingsView: View {
                     Stepper("默认宽限：\(defaultGracePeriod) 分钟", value: $defaultGracePeriod, in: 15...720, step: 15)
                 }
                 Section("系统能力") {
-                    SettingsStatusRow(title: "通知", detail: "尚未请求", systemImage: "bell.badge")
+                    SettingsStatusRow(
+                        title: "通知",
+                        detail: notificationManager.permissionState.title,
+                        systemImage: "bell.badge"
+                    )
+                    if notificationManager.permissionState != .authorized {
+                        Button(notificationManager.permissionState == .denied ? "重新检查通知权限" : "启用通知") {
+                            Task {
+                                let granted = await notificationManager.requestAuthorization()
+                                if granted {
+                                    await notificationManager.scheduleDailyBriefings(
+                                        wakeHour: wakeHour,
+                                        bedtimeHour: bedHour
+                                    )
+                                }
+                            }
+                        }
+                    }
                     SettingsStatusRow(title: "Apple 健康", detail: "尚未连接", systemImage: "heart.fill")
                     SettingsStatusRow(title: "天气位置", detail: "尚未连接", systemImage: "location.fill")
                     SettingsStatusRow(title: "Apple Watch", detail: "可选，不影响 iPhone 功能", systemImage: "applewatch")
@@ -84,8 +102,32 @@ struct SettingsView: View {
                     Text("本应用只提供记录和提醒，不判断是否可以补服、停服或调整剂量。请遵循医生或药师建议。")
                         .foregroundStyle(.secondary)
                 }
+                if let errorMessage = notificationManager.lastErrorMessage {
+                    Section("通知错误") {
+                        Text(errorMessage).foregroundStyle(.red)
+                    }
+                }
             }
             .navigationTitle("设置")
+            .task {
+                await notificationManager.refreshPermissionState()
+            }
+            .onChange(of: wakeHour) { _, newValue in
+                Task {
+                    await notificationManager.scheduleDailyBriefings(
+                        wakeHour: newValue,
+                        bedtimeHour: bedHour
+                    )
+                }
+            }
+            .onChange(of: bedHour) { _, newValue in
+                Task {
+                    await notificationManager.scheduleDailyBriefings(
+                        wakeHour: wakeHour,
+                        bedtimeHour: newValue
+                    )
+                }
+            }
         }
     }
 }
