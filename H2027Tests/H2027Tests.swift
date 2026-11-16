@@ -1,37 +1,68 @@
-//
-//  H2027Tests.swift
-//  H2027Tests
-//
-//  Created by Shawn Huang on 11/16/26.
-//
+import Foundation
+import Testing
+@testable import H2027
 
-import XCTest
-
-final class H2027Tests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+struct ScheduleEngineTests {
+    @Test
+    func createsDoseForMatchingWeekday() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let date = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 10)))
+        let medication = Medication(name: "测试药品", kind: .prescription, dosage: 1, unit: "片")
+        let weekday = calendar.component(.weekday, from: date)
+        let schedule = MedicationSchedule(
+            medicationID: medication.id,
+            hour: 8,
+            minute: 30,
+            weekdayNumbers: [weekday],
+            startDate: calendar.date(byAdding: .day, value: -1, to: date) ?? date
+        )
+        let doses = ScheduleEngine.doses(
+            on: date,
+            medications: [medication],
+            schedules: [schedule],
+            events: [],
+            calendar: calendar
+        )
+        #expect(doses.count == 1)
+        #expect(doses.first?.medicationName == "测试药品")
+        #expect(calendar.component(.hour, from: doses[0].scheduledAt) == 8)
+        #expect(calendar.component(.minute, from: doses[0].scheduledAt) == 30)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    @Test
+    func marksDoseMissedAfterGracePeriod() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let scheduledAt = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 8)))
+        let dose = ScheduledDose(
+            id: "dose",
+            medicationID: UUID(),
+            scheduleID: UUID(),
+            medicationName: "测试药品",
+            dosage: 1,
+            unit: "片",
+            scheduledAt: scheduledAt,
+            gracePeriodMinutes: 120,
+            mealNote: "",
+            recordedStatus: nil
+        )
+        let now = try #require(calendar.date(byAdding: .minute, value: 121, to: scheduledAt))
+        #expect(ScheduleEngine.effectiveStatus(for: dose, now: now) == .missed)
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-        // XCTest Documentation
-        // https://developer.apple.com/documentation/xctest
+    @Test
+    func recordedStatusWinsOverMissedCalculation() {
+        let dose = ScheduledDose(
+            id: "dose",
+            medicationID: UUID(),
+            scheduleID: UUID(),
+            medicationName: "测试药品",
+            dosage: 1,
+            unit: "片",
+            scheduledAt: Date(timeIntervalSince1970: 1_000),
+            gracePeriodMinutes: 15,
+            mealNote: "",
+            recordedStatus: .taken
+        )
+        #expect(ScheduleEngine.effectiveStatus(for: dose, now: .now) == .taken)
     }
-
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        measure {
-            // Put the code you want to measure the time of here.
-        }
-    }
-
 }

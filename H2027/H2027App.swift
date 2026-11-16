@@ -1,32 +1,21 @@
-//
-//  H2027App.swift
-//  H2027
-//
-//  Created by Shawn Huang on 11/16/26.
-//
-
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 @main
 struct H2027App: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    private let modelContainer: ModelContainer = {
+        let schema = Schema([Medication.self, MedicationSchedule.self, DoseEvent.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            fatalError("Could not create model container: \(error)")
         }
     }()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(sharedModelContainer)
+        WindowGroup { ContentView() }
+            .modelContainer(modelContainer)
     }
 }
