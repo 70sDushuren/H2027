@@ -6,6 +6,7 @@ struct TodayView: View {
     @Query(sort: \Medication.name) private var medications: [Medication]
     @Query private var schedules: [MedicationSchedule]
     @Query(sort: \DoseEvent.recordedAt, order: .reverse) private var events: [DoseEvent]
+    @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
 
     private var todayDoses: [ScheduledDose] {
         ScheduleEngine.doses(on: .now, medications: medications, schedules: schedules, events: events)
@@ -39,7 +40,14 @@ struct TodayView: View {
                 .padding()
             }
             .navigationTitle("今日")
+            .task { syncToWatch() }
+            .onChange(of: todayDoses) { _, _ in syncToWatch() }
+            .onChange(of: appLanguageCode) { _, _ in syncToWatch() }
         }
+    }
+
+    private func syncToWatch() {
+        WatchSyncManager.shared.send(doses: todayDoses, languageCode: appLanguageCode)
     }
 
     private func record(_ dose: ScheduledDose, status: DoseStatus) {

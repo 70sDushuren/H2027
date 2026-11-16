@@ -14,6 +14,7 @@ struct H2027App: App {
             let container = try ModelContainer(for: schema, configurations: [configuration])
             modelContainer = container
             NotificationManager.shared.configure(modelContainer: container)
+            WatchSyncManager.shared.configure(modelContainer: container)
         } catch {
             fatalError("Could not create model container: \(error)")
         }
