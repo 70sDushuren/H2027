@@ -200,10 +200,12 @@ enum ScheduleEngine {
                 return nil
             }
 
-            let event = events.last {
-                $0.scheduleID == schedule.id &&
-                $0.scheduledAt.map { calendar.isDate($0, inSameDayAs: date) } == true
-            }
+            let event = events
+                .filter {
+                    $0.scheduleID == schedule.id &&
+                    $0.scheduledAt.map { calendar.isDate($0, inSameDayAs: date) } == true
+                }
+                .max { $0.recordedAt < $1.recordedAt }
             return ScheduledDose(
                 id: "\(schedule.id.uuidString)-\(calendar.startOfDay(for: date).timeIntervalSince1970)",
                 medicationID: medication.id,

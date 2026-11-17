@@ -1,0 +1,56 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "在 ${applicationName} 记录服药" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "在 ${applicationName} 记录服药",
+              "用 ${applicationName} 记录服药"
+            ]
+          }
+        },
+        "en-GB" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Record medication in ${applicationName}",
+              "Log medication in ${applicationName}"
+            ]
+          }
+        },
+        "pt-PT" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "registar medicação em ${applicationName}",
+              "registar uma toma em ${applicationName}"
+            ]
+          }
+        },
+        "yue-Hant" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "喺 ${applicationName} 記錄服藥",
+              "用 ${applicationName} 記錄服藥"
+            ]
+          }
+        },
+        "zh-Hant" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "在 ${applicationName} 記錄服藥",
+              "用 ${applicationName} 記錄服藥"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

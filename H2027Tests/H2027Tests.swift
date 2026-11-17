@@ -65,6 +65,50 @@ struct ScheduleEngineTests {
         )
         #expect(ScheduleEngine.effectiveStatus(for: dose, now: .now) == .taken)
     }
+
+    @Test
+    func latestDoseEventDeterminesRecordedStatus() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let date = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 10)))
+        let scheduledAt = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 8)))
+        let medication = Medication(name: "测试药品", kind: .prescription, dosage: 1, unit: "片")
+        let schedule = MedicationSchedule(
+            medicationID: medication.id,
+            hour: 8,
+            minute: 0,
+            weekdayNumbers: [calendar.component(.weekday, from: date)],
+            startDate: calendar.date(byAdding: .day, value: -1, to: date) ?? date
+        )
+        let olderEvent = DoseEvent(
+            medicationID: medication.id,
+            scheduleID: schedule.id,
+            scheduledAt: scheduledAt,
+            recordedAt: scheduledAt,
+            dosage: 1,
+            unit: "片",
+            status: .snoozed
+        )
+        let newerEvent = DoseEvent(
+            medicationID: medication.id,
+            scheduleID: schedule.id,
+            scheduledAt: scheduledAt,
+            recordedAt: scheduledAt.addingTimeInterval(60),
+            dosage: 1,
+            unit: "片",
+            status: .taken,
+            source: .siri
+        )
+
+        let doses = ScheduleEngine.doses(
+            on: date,
+            medications: [medication],
+            schedules: [schedule],
+            events: [newerEvent, olderEvent],
+            calendar: calendar
+        )
+
+        #expect(doses.first?.recordedStatus == .taken)
+    }
 }
 
 struct MedicationReferenceCatalogTests {
