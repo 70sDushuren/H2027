@@ -78,6 +78,7 @@
         "ENABLE_RESOURCE_ACCESS_USB": "NO",
         "ENABLE_USER_SELECTED_FILES": "readonly",
         "GENERATE_INFOPLIST_FILE": "YES",
+        "INFOPLIST_KEY_NSCameraUsageDescription": "用于扫描药品包装文字，辅助填写药品名称和规格。",
         "INFOPLIST_KEY_NSHealthShareUsageDescription": "用于读取你授权的健康指标，并在用药提醒中提供参考。",
         "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription": "用于提供本地天气和穿衣建议。",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]": "YES",

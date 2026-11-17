@@ -10,6 +10,66 @@
             "state" : "new",
             "value" : "H2027"
           }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027"
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027"
+          }
+        },
+        "yue-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027"
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription" : {
+      "comment" : "Privacy - Camera Usage Description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "用于扫描药品包装文字，辅助填写药品名称和规格。"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027 uses the camera to scan text on medicine packaging and help fill in the medicine name and strength."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Permite digitalizar texto em embalagens de medicamentos para ajudar a preencher o nome e a dosagem."
+          }
+        },
+        "yue-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用嚟掃描藥品包裝上嘅文字，協助填寫藥品名稱同規格。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用於掃描藥品包裝上的文字，以輔助填寫藥品名稱和規格。"
+          }
         }
       }
     },
@@ -22,6 +82,30 @@
             "state" : "new",
             "value" : "用于读取你授权的健康指标，并在用药提醒中提供参考。"
           }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027 reads health data you allow to provide context for medication reminders."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Permite ler os indicadores de saúde autorizados para fornecer contexto nos lembretes de medicação."
+          }
+        },
+        "yue-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用嚟讀取你授權嘅健康指標，並喺用藥提醒中提供參考。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用於讀取你授權的健康指標，並在用藥提醒中提供參考。"
+          }
         }
       }
     },
@@ -33,6 +117,30 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "用于提供本地天气和穿衣建议。"
+          }
+        },
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "H2027 uses your location to provide local weather and clothing advice."
+          }
+        },
+        "pt-PT" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Permite fornecer informações meteorológicas locais e sugestões de vestuário."
+          }
+        },
+        "yue-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用嚟提供當地天氣同穿衣建議。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "用於提供當地天氣和穿衣建議。"
           }
         }
       }

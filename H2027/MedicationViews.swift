@@ -112,6 +112,7 @@ struct AddMedicationView: View {
     @State private var unit = "片"
     @State private var notes = ""
     @State private var isPresentingReference = false
+    @State private var isPresentingScanner = false
     @State private var selectedReference: MedicationReference?
 
     var body: some View {
@@ -159,8 +160,11 @@ struct AddMedicationView: View {
                     }
                 }
                 Section {
-                    Label("包装扫描将在下一阶段加入；识别结果必须由你确认。", systemImage: "camera.viewfinder")
-                        .foregroundStyle(.secondary)
+                    Button("扫描药品包装", systemImage: "camera.viewfinder") {
+                        isPresentingScanner = true
+                    }
+                } footer: {
+                    Text("扫描结果只用于辅助填写，保存前请对照药盒或药袋确认。")
                 }
             }
             .navigationTitle("添加药品")
@@ -173,6 +177,11 @@ struct AddMedicationView: View {
                         dosage = Double(parts.first ?? "1") ?? 1
                         unit = parts.dropFirst().joined(separator: " ")
                     }
+                }
+            }
+            .sheet(isPresented: $isPresentingScanner) {
+                MedicationPackageScannerView { recognizedText in
+                    applyRecognizedText(recognizedText)
                 }
             }
             .toolbar {
@@ -192,6 +201,19 @@ struct AddMedicationView: View {
                 }
             }
         }
+    }
+
+    private func applyRecognizedText(_ recognizedText: String) {
+        let lines = recognizedText
+            .split(whereSeparator: \.isNewline)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !lines.isEmpty else { return }
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            name = lines[0]
+        }
+        let scanNote = lines.joined(separator: " / ")
+        notes = notes.isEmpty ? scanNote : "\(notes)\n\(scanNote)"
     }
 }
 
