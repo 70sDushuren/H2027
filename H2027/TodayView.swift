@@ -7,6 +7,9 @@ struct TodayView: View {
     @Query private var schedules: [MedicationSchedule]
     @Query(sort: \DoseEvent.recordedAt, order: .reverse) private var events: [DoseEvent]
     @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
+    @AppStorage("wakeHour") private var wakeHour = 7
+    @AppStorage("bedHour") private var bedHour = 22
+    @State private var weatherService = WeatherAdvisoryService.shared
 
     private var todayDoses: [ScheduledDose] {
         ScheduleEngine.doses(on: .now, medications: medications, schedules: schedules, events: events)
@@ -18,7 +21,12 @@ struct TodayView: View {
                 LazyVStack(spacing: 16) {
                     MorningBriefingCard(
                         plannedCount: todayDoses.count,
-                        completedCount: todayDoses.filter { $0.recordedStatus == .taken }.count
+                        completedCount: todayDoses.filter { $0.recordedStatus == .taken }.count,
+                        weatherState: weatherService.state,
+                        temperatureCelsius: weatherService.temperatureCelsius,
+                        conditionText: weatherService.conditionText,
+                        conditionSymbol: weatherService.conditionSymbol,
+                        clothingAdvice: weatherService.clothingAdvice
                     )
                     if todayDoses.isEmpty {
                         ContentUnavailableView(
@@ -40,7 +48,14 @@ struct TodayView: View {
                 .padding()
             }
             .navigationTitle("今日")
-            .task { syncToWatch() }
+            .task {
+                syncToWatch()
+                await weatherService.refresh()
+                await NotificationManager.shared.scheduleDailyBriefings(
+                    wakeHour: wakeHour,
+                    bedtimeHour: bedHour
+                )
+            }
             .onChange(of: todayDoses) { _, _ in syncToWatch() }
             .onChange(of: appLanguageCode) { _, _ in syncToWatch() }
         }
@@ -61,26 +76,73 @@ struct TodayView: View {
                 status: status
             )
         )
+        try? modelContext.save()
+        Task {
+            await NotificationManager.shared.scheduleDailyBriefings(
+                wakeHour: wakeHour,
+                bedtimeHour: bedHour
+            )
+        }
     }
 }
 
 struct MorningBriefingCard: View {
     let plannedCount: Int
     let completedCount: Int
+    let weatherState: WeatherLoadState
+    let temperatureCelsius: Double?
+    let conditionText: String
+    let conditionSymbol: String
+    let clothingAdvice: String
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("早上好", systemImage: "sun.horizon.fill")
                 .font(.title2.bold())
             Text("今天计划服用 \(plannedCount) 次，已完成 \(completedCount) 次。")
-            Label("天气与穿衣建议将在位置权限开启后显示", systemImage: "cloud.sun.fill")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            WeatherBriefingContent(
+                state: weatherState,
+                temperatureCelsius: temperatureCelsius,
+                conditionText: conditionText,
+                conditionSymbol: conditionSymbol,
+                clothingAdvice: clothingAdvice
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.blue.gradient.opacity(0.16), in: RoundedRectangle(cornerRadius: 20))
         .accessibilityElement(children: .combine)
+    }
+}
+
+struct WeatherBriefingContent: View {
+    let state: WeatherLoadState
+    let temperatureCelsius: Double?
+    let conditionText: String
+    let conditionSymbol: String
+    let clothingAdvice: String
+
+    var body: some View {
+        switch state {
+        case .idle, .requestingLocation:
+            Label("正在获取天气和穿衣建议…", systemImage: "location")
+                .foregroundStyle(.secondary)
+        case .loaded:
+            VStack(alignment: .leading, spacing: 6) {
+                if let temperatureCelsius {
+                    Label {
+                        Text("\(conditionText) · \(temperatureCelsius, format: .number.precision(.fractionLength(0)))°C")
+                    } icon: {
+                        Image(systemName: conditionSymbol)
+                    }
+                }
+                Label(clothingAdvice, systemImage: "tshirt.fill")
+                    .foregroundStyle(.secondary)
+            }
+        case .unavailable:
+            Label("无法获取天气；可在设置中检查位置权限。", systemImage: "location.slash")
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

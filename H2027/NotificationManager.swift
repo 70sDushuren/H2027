@@ -61,17 +61,20 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func scheduleDailyBriefings(wakeHour: Int, bedtimeHour: Int) async {
+        await refreshPermissionState()
+        guard permissionState == .authorized else { return }
         center.removePendingNotificationRequests(withIdentifiers: ["briefing.morning", "briefing.bedtime"])
+        let bodies = briefingBodies()
 
         let morning = UNMutableNotificationContent()
-        morning.title = "早上好"
-        morning.body = "查看今日天气、穿衣建议和用药计划。"
+        morning.title = String(localized: "早上好")
+        morning.body = bodies.morning
         morning.sound = .default
         morning.categoryIdentifier = NotificationCategory.briefing
 
         let bedtime = UNMutableNotificationContent()
-        bedtime.title = "睡前用药检查"
-        bedtime.body = "查看今天的服药完成情况和未处理事项。"
+        bedtime.title = String(localized: "睡前用药检查")
+        bedtime.body = bodies.bedtime
         bedtime.sound = .default
         bedtime.categoryIdentifier = NotificationCategory.briefing
 
@@ -98,6 +101,31 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    private func briefingBodies(now: Date = .now) -> (morning: String, bedtime: String) {
+        guard let modelContainer,
+              let medications = try? modelContainer.mainContext.fetch(FetchDescriptor<Medication>()),
+              let schedules = try? modelContainer.mainContext.fetch(FetchDescriptor<MedicationSchedule>()),
+              let events = try? modelContainer.mainContext.fetch(FetchDescriptor<DoseEvent>()) else {
+            return (
+                String(localized: "查看今日天气、穿衣建议和用药计划。"),
+                String(localized: "查看今天的服药完成情况和未处理事项。")
+            )
+        }
+        let today = ScheduleEngine.doses(
+            on: now,
+            medications: medications,
+            schedules: schedules,
+            events: events
+        )
+        let completed = today.filter { $0.recordedStatus == .taken }.count
+        let pending = today.filter { ScheduleEngine.effectiveStatus(for: $0, now: now) == nil }.count
+        let missed = today.filter { ScheduleEngine.effectiveStatus(for: $0, now: now) == .missed }.count
+        return (
+            String(localized: "今天计划服用 \(today.count) 次；打开 App 查看天气、穿衣建议和详细安排。"),
+            String(localized: "今天已完成 \(completed)/\(today.count) 次，还有 \(pending) 项待处理，\(missed) 项已漏服。")
+        )
+    }
+
     func scheduleMedicationReminder(
         scheduleID: UUID,
         medicationID: UUID,
@@ -113,8 +141,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         for weekday in weekdays {
             let content = UNMutableNotificationContent()
-            content.title = "该服用 \(medicationName) 了"
-            content.body = "计划剂量：\(dosage.formatted()) \(unit)"
+            content.title = String(localized: "该服用 \(medicationName) 了")
+            content.body = String(localized: "计划剂量：\(dosage.formatted()) \(unit)")
             content.sound = .default
             content.categoryIdentifier = NotificationCategory.medication
             content.userInfo = [
@@ -142,9 +170,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private func registerCategories() {
-        let taken = UNNotificationAction(identifier: NotificationAction.taken, title: "已服用")
-        let snooze = UNNotificationAction(identifier: NotificationAction.snooze, title: "延后15分钟")
-        let skip = UNNotificationAction(identifier: NotificationAction.skip, title: "跳过", options: [.destructive])
+        let taken = UNNotificationAction(identifier: NotificationAction.taken, title: String(localized: "已服用"))
+        let snooze = UNNotificationAction(identifier: NotificationAction.snooze, title: String(localized: "延后15分钟"))
+        let skip = UNNotificationAction(identifier: NotificationAction.skip, title: String(localized: "跳过"), options: [.destructive])
         let medication = UNNotificationCategory(
             identifier: NotificationCategory.medication,
             actions: [taken, snooze, skip],
@@ -211,8 +239,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
         guard status == .snoozed else { return }
         let content = UNMutableNotificationContent()
-        content.title = "延后的用药提醒"
-        content.body = "请确认是否已完成本次用药。"
+        content.title = String(localized: "延后的用药提醒")
+        content.body = String(localized: "请确认是否已完成本次用药。")
         content.sound = .default
         content.categoryIdentifier = NotificationCategory.medication
         content.userInfo = [

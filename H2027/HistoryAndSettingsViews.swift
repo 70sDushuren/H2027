@@ -67,6 +67,8 @@ struct SettingsView: View {
     @AppStorage("defaultGracePeriod") private var defaultGracePeriod = 120
     @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
     @State private var notificationManager = NotificationManager.shared
+    @State private var healthKitService = HealthKitService.shared
+    @State private var weatherService = WeatherAdvisoryService.shared
 
     var body: some View {
         NavigationStack {
@@ -102,8 +104,24 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    SettingsStatusRow(title: "Apple 健康", detail: "尚未连接", systemImage: "heart.fill")
-                    SettingsStatusRow(title: "天气位置", detail: "尚未连接", systemImage: "location.fill")
+                    SettingsStatusRow(
+                        title: "Apple 健康",
+                        detail: healthKitService.state.title,
+                        systemImage: "heart.fill"
+                    )
+                    if healthKitService.canRequestAccess {
+                        Button("连接 Apple 健康") {
+                            Task { await healthKitService.requestReadAccess() }
+                        }
+                    }
+                    SettingsStatusRow(
+                        title: "天气位置",
+                        detail: weatherStatusTitle,
+                        systemImage: "location.fill"
+                    )
+                    Button("刷新天气与位置") {
+                        Task { await weatherService.refresh() }
+                    }
                     SettingsStatusRow(title: "Apple Watch", detail: "可选，不影响 iPhone 功能", systemImage: "applewatch")
                 }
                 Section("重要说明") {
@@ -136,6 +154,15 @@ struct SettingsView: View {
                     )
                 }
             }
+        }
+    }
+
+    private var weatherStatusTitle: String {
+        switch weatherService.state {
+        case .idle: "尚未连接"
+        case .requestingLocation: "正在获取"
+        case .loaded: "已连接"
+        case .unavailable: "不可用"
         }
     }
 }
