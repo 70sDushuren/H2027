@@ -77,6 +77,9 @@ final class WatchStore: NSObject, WCSessionDelegate, UNUserNotificationCenterDel
         super.init()
         restoreSnapshot()
         restorePendingActions()
+#if DEBUG
+        configureDebugScenarioIfNeeded()
+#endif
         configureNotificationCategories()
         UNUserNotificationCenter.current().delegate = self
         Task { await refreshNotificationAuthorizationState() }
@@ -226,6 +229,34 @@ final class WatchStore: NSObject, WCSessionDelegate, UNUserNotificationCenterDel
         guard let data = try? encoder.encode(pendingActions) else { return }
         UserDefaults.standard.set(data, forKey: pendingActionsKey)
     }
+
+#if DEBUG
+    private func configureDebugScenarioIfNeeded() {
+        guard ProcessInfo.processInfo.arguments.contains("--watch-demo-dose") else { return }
+        let calendar = Calendar.current
+        let scheduledAt = calendar.date(
+            bySetting: .second,
+            value: 0,
+            of: calendar.date(byAdding: .minute, value: 1, to: .now) ?? .now
+        ) ?? .now.addingTimeInterval(60)
+        doses = [
+            WatchDose(
+                id: "watch-demo-dose",
+                name: "Demo Medication",
+                unit: "tablet",
+                mealNote: "With food",
+                medicationID: UUID(uuidString: "00000000-0000-0000-0000-000000000101") ?? UUID(),
+                scheduleID: UUID(uuidString: "00000000-0000-0000-0000-000000000102") ?? UUID(),
+                dosage: 1,
+                scheduledAt: scheduledAt,
+                status: nil
+            )
+        ]
+        pendingActions = []
+        lastUpdatedAt = .now
+        UserDefaults.standard.removeObject(forKey: pendingActionsKey)
+    }
+#endif
 
     private func configureNotificationCategories() {
         let actions = [

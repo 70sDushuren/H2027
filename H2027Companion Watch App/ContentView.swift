@@ -34,6 +34,7 @@ struct ContentView: View {
                                 copy: store.copy
                             )
                         }
+                        .accessibilityIdentifier("watch.dose.row.\(dose.id)")
                     }
                 }
                 NavigationLink {
@@ -94,6 +95,7 @@ private struct WatchSummaryHeader: View {
             HStack {
                 Label("\(completedCount)/\(totalCount)", systemImage: "pills.fill")
                     .font(.headline)
+                    .accessibilityIdentifier("watch.summary.completed")
                 Spacer()
                 Image(systemName: isPhoneReachable ? "iphone.radiowaves.left.and.right" : "iphone.slash")
                     .foregroundStyle(isPhoneReachable ? .green : .secondary)
@@ -103,6 +105,7 @@ private struct WatchSummaryHeader: View {
                 Label(copy.pendingSync(pendingActionCount), systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
                     .font(.caption2)
                     .foregroundStyle(.orange)
+                    .accessibilityIdentifier("watch.sync.pending")
             } else if let lastUpdatedAt {
                 Text(lastUpdatedAt, format: .dateTime.hour().minute())
                     .font(.caption2)
@@ -176,14 +179,17 @@ private struct WatchDoseDetailView: View {
                             dismiss()
                         }
                         .tint(.green)
+                        .accessibilityIdentifier("watch.dose.taken")
                         Button(store.copy.snooze, systemImage: "clock.fill") {
                             store.record(dose, status: .snoozed)
                             dismiss()
                         }
                         .tint(.orange)
+                        .accessibilityIdentifier("watch.dose.snoozed")
                         Button(store.copy.skip, systemImage: "forward.end.fill", role: .destructive) {
                             isConfirmingSkip = true
                         }
+                        .accessibilityIdentifier("watch.dose.skipped")
                     }
                 }
             } else {
