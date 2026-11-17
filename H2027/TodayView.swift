@@ -3,16 +3,26 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
     @Query(sort: \Medication.name) private var medications: [Medication]
     @Query private var schedules: [MedicationSchedule]
     @Query(sort: \DoseEvent.recordedAt, order: .reverse) private var events: [DoseEvent]
     @AppStorage("appLanguage") private var appLanguageCode = AppLanguage.simplifiedChinese.rawValue
     @AppStorage("wakeHour") private var wakeHour = 7
     @AppStorage("bedHour") private var bedHour = 22
+    @AppStorage("lastMorningBriefingTimestamp") private var lastMorningBriefingTimestamp = 0.0
+    @AppStorage("lastBedtimeBriefingTimestamp") private var lastBedtimeBriefingTimestamp = 0.0
     @State private var weatherService = WeatherAdvisoryService.shared
+    @State private var automaticBriefing: DailyBriefingKind?
 
     private var todayDoses: [ScheduledDose] {
         ScheduleEngine.doses(on: .now, medications: medications, schedules: schedules, events: events)
+    }
+
+    private var yesterdayMissedMedicationNames: [String] {
+        guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now) else { return [] }
+        let doses = ScheduleEngine.doses(on: yesterday, medications: medications, schedules: schedules, events: events)
+        return Array(Set(doses.filter { ScheduleEngine.effectiveStatus(for: $0) == .missed }.map(\.medicationName))).sorted()
     }
 
     var body: some View {
@@ -55,9 +65,28 @@ struct TodayView: View {
                     wakeHour: wakeHour,
                     bedtimeHour: bedHour
                 )
+                presentAutomaticBriefingIfNeeded()
             }
             .onChange(of: todayDoses) { _, _ in syncToWatch() }
             .onChange(of: appLanguageCode) { _, _ in syncToWatch() }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { presentAutomaticBriefingIfNeeded() }
+            }
+            .sheet(item: $automaticBriefing) { kind in
+                DailyBriefingView(
+                    kind: kind,
+                    plannedCount: todayDoses.count,
+                    completedCount: todayDoses.filter { $0.recordedStatus == .taken }.count,
+                    pendingCount: todayDoses.filter { ScheduleEngine.effectiveStatus(for: $0) == nil }.count,
+                    missedCount: todayDoses.filter { ScheduleEngine.effectiveStatus(for: $0) == .missed }.count,
+                    previousMissedMedicationNames: yesterdayMissedMedicationNames,
+                    weatherState: weatherService.state,
+                    temperatureCelsius: weatherService.temperatureCelsius,
+                    conditionText: weatherService.conditionText,
+                    conditionSymbol: weatherService.conditionSymbol,
+                    clothingAdvice: weatherService.clothingAdvice
+                )
+            }
         }
     }
 
@@ -83,6 +112,23 @@ struct TodayView: View {
                 bedtimeHour: bedHour
             )
         }
+    }
+
+    private func presentAutomaticBriefingIfNeeded(now: Date = .now) {
+        let lastMorningDate = lastMorningBriefingTimestamp > 0 ? Date(timeIntervalSince1970: lastMorningBriefingTimestamp) : nil
+        let lastBedtimeDate = lastBedtimeBriefingTimestamp > 0 ? Date(timeIntervalSince1970: lastBedtimeBriefingTimestamp) : nil
+        guard let kind = DailyBriefingPolicy.nextBriefing(
+            now: now,
+            wakeHour: wakeHour,
+            bedtimeHour: bedHour,
+            lastMorningDate: lastMorningDate,
+            lastBedtimeDate: lastBedtimeDate
+        ) else { return }
+        switch kind {
+        case .morning: lastMorningBriefingTimestamp = now.timeIntervalSince1970
+        case .bedtime: lastBedtimeBriefingTimestamp = now.timeIntervalSince1970
+        }
+        automaticBriefing = kind
     }
 }
 

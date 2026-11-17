@@ -128,3 +128,54 @@ struct MedicationReferenceCatalogTests {
         }
     }
 }
+
+struct DailyBriefingPolicyTests {
+    private let calendar = Calendar(identifier: .gregorian)
+
+    @Test
+    func presentsMorningOnceAfterWakeTime() throws {
+        let morning = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 8)))
+        #expect(DailyBriefingPolicy.nextBriefing(
+            now: morning,
+            wakeHour: 7,
+            bedtimeHour: 22,
+            lastMorningDate: nil,
+            lastBedtimeDate: nil,
+            calendar: calendar
+        ) == .morning)
+        #expect(DailyBriefingPolicy.nextBriefing(
+            now: morning,
+            wakeHour: 7,
+            bedtimeHour: 22,
+            lastMorningDate: morning,
+            lastBedtimeDate: nil,
+            calendar: calendar
+        ) == nil)
+    }
+
+    @Test
+    func presentsBedtimeAfterConfiguredHour() throws {
+        let bedtime = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 22)))
+        #expect(DailyBriefingPolicy.nextBriefing(
+            now: bedtime,
+            wakeHour: 7,
+            bedtimeHour: 22,
+            lastMorningDate: nil,
+            lastBedtimeDate: nil,
+            calendar: calendar
+        ) == .bedtime)
+    }
+
+    @Test
+    func doesNotPresentNormalBedtimeBriefingAfterMidnight() throws {
+        let afterMidnight = try #require(calendar.date(from: DateComponents(year: 2026, month: 11, day: 16, hour: 1)))
+        #expect(DailyBriefingPolicy.nextBriefing(
+            now: afterMidnight,
+            wakeHour: 7,
+            bedtimeHour: 22,
+            lastMorningDate: nil,
+            lastBedtimeDate: nil,
+            calendar: calendar
+        ) == nil)
+    }
+}
