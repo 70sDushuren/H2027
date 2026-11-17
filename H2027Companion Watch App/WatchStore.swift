@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import UserNotifications
 import WatchConnectivity
+import WatchKit
 
 enum WatchNotificationAuthorizationState: Equatable {
     case notRequested
@@ -73,6 +74,14 @@ final class WatchStore: NSObject, WCSessionDelegate, UNUserNotificationCenterDel
     var completedCount: Int { doses.filter { $0.status == .taken }.count }
     var pendingActionCount: Int { pendingActions.count }
 
+    func nextDose(at date: Date = .now) -> WatchDose? {
+        let incomplete = doses.filter { $0.status == nil || $0.status == .snoozed || $0.status == .missed }
+        return incomplete
+            .filter { $0.scheduledAt >= date }
+            .min { $0.scheduledAt < $1.scheduledAt }
+            ?? incomplete.min { $0.scheduledAt < $1.scheduledAt }
+    }
+
     override init() {
         super.init()
         restoreSnapshot()
@@ -105,7 +114,13 @@ final class WatchStore: NSObject, WCSessionDelegate, UNUserNotificationCenterDel
         pendingActions.append(action)
         persistPendingActions()
         transmit(action)
+        playHaptic(for: status)
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationIdentifier(for: dose)])
+    }
+
+    private func playHaptic(for status: WatchDoseStatus) {
+        let haptic: WKHapticType = status == .taken ? .success : .click
+        WKInterfaceDevice.current().play(haptic)
     }
 
     func requestNotificationAuthorization() async {
@@ -369,6 +384,18 @@ struct WatchCopy {
     var remindersDenied: String { choose("Permission denied", "权限已关闭", "權限已關閉", "權限已關閉", "Permissão recusada") }
     var remindersNotRequested: String { choose("Not enabled", "尚未启用", "尚未啟用", "未開啟", "Não ativados") }
     var reminderExplanation: String { choose("Get dose alerts directly on Apple Watch.", "直接在 Apple Watch 上接收用药提醒。", "直接在 Apple Watch 上接收用藥提醒。", "直接喺 Apple Watch 收到食藥提醒。", "Receba alertas de dose diretamente no Apple Watch.") }
+    var nextDose: String { choose("Next dose", "下一次用药", "下一次用藥", "下一次食藥", "Próxima dose") }
+    var morningBriefing: String { choose("Good morning", "早上好", "早晨好", "早晨", "Bom dia") }
+    var eveningBriefing: String { choose("Evening check", "睡前检查", "睡前檢查", "瞓前檢查", "Revisão noturna") }
+    var allDone: String { choose("All planned doses are complete.", "今天的计划用药已完成。", "今天的計劃用藥已完成。", "今日計劃食嘅藥已完成。", "Todas as doses planeadas estão concluídas.") }
+
+    func morningPlan(_ count: Int) -> String {
+        choose("\(count) planned dose(s) today.", "今天有 \(count) 次计划用药。", "今天有 \(count) 次計劃用藥。", "今日有 \(count) 次計劃食藥。", "\(count) dose(s) planeada(s) hoje.")
+    }
+
+    func eveningProgress(completed: Int, total: Int) -> String {
+        choose("Completed \(completed) of \(total) doses.", "已完成 \(completed)/\(total) 次用药。", "已完成 \(completed)/\(total) 次用藥。", "已完成 \(completed)/\(total) 次食藥。", "Concluídas \(completed) de \(total) doses.")
+    }
 
     func pendingSync(_ count: Int) -> String {
         choose("\(count) pending", "\(count) 项待同步", "\(count) 項待同步", "\(count) 項等緊同步", "\(count) pendente(s)")

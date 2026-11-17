@@ -15,7 +15,7 @@ final class H2027Companion_Watch_AppUITests: XCTestCase {
     @MainActor
     func testDoseDetailShowsRecordingActions() throws {
         let app = launchWithDemoDose()
-        let row = app.buttons["watch.dose.row.watch-demo-dose"]
+        let row = app.buttons["watch.nextDose"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
 
@@ -27,7 +27,7 @@ final class H2027Companion_Watch_AppUITests: XCTestCase {
     @MainActor
     func testTakenActionUpdatesSummary() throws {
         let app = launchWithDemoDose()
-        let row = app.buttons["watch.dose.row.watch-demo-dose"]
+        let row = app.buttons["watch.nextDose"]
         XCTAssertTrue(row.waitForExistence(timeout: 5))
         row.tap()
 

@@ -48,4 +48,36 @@ struct WatchDataModelTests {
         #expect(copy.reminderBody(dosage: 500, unit: "mg", mealNote: "") == "Take 500 mg")
         #expect(copy.reminderBody(dosage: 1, unit: "tablet", mealNote: "With food") == "Take 1 tablet · With food")
     }
+
+    @Test @MainActor
+    func nextDosePrefersUpcomingThenFallsBackToOverdue() {
+        let now = Date(timeIntervalSince1970: 10_000)
+        let overdue = makeDose(id: "overdue", scheduledAt: now.addingTimeInterval(-600))
+        let upcoming = makeDose(id: "upcoming", scheduledAt: now.addingTimeInterval(600))
+        let completed = makeDose(id: "completed", scheduledAt: now.addingTimeInterval(300), status: .taken)
+        let store = WatchStore()
+        store.doses = [completed, upcoming, overdue]
+
+        #expect(store.nextDose(at: now)?.id == "upcoming")
+        store.doses = [completed, overdue]
+        #expect(store.nextDose(at: now)?.id == "overdue")
+    }
+
+    private func makeDose(
+        id: String,
+        scheduledAt: Date,
+        status: WatchDoseStatus? = nil
+    ) -> WatchDose {
+        WatchDose(
+            id: id,
+            name: "Medicine",
+            unit: "tablet",
+            mealNote: "",
+            medicationID: UUID(),
+            scheduleID: UUID(),
+            dosage: 1,
+            scheduledAt: scheduledAt,
+            status: status
+        )
+    }
 }

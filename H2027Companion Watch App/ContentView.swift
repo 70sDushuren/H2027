@@ -6,6 +6,29 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             List {
+                WatchBriefingCard(
+                    date: .now,
+                    completedCount: store.completedCount,
+                    totalCount: store.doses.count,
+                    copy: store.copy
+                )
+                if let nextDose = store.nextDose() {
+                    Section(store.copy.nextDose) {
+                        NavigationLink {
+                            WatchDoseDetailView(doseID: nextDose.id)
+                        } label: {
+                            WatchDoseRow(
+                                name: nextDose.name,
+                                dosage: nextDose.dosage,
+                                unit: nextDose.unit,
+                                scheduledAt: nextDose.scheduledAt,
+                                status: nextDose.status,
+                                copy: store.copy
+                            )
+                        }
+                        .accessibilityIdentifier("watch.nextDose")
+                    }
+                }
                 WatchSummaryHeader(
                     completedCount: store.completedCount,
                     totalCount: store.doses.count,
@@ -45,6 +68,42 @@ struct ContentView: View {
             }
             .navigationTitle(store.copy.today)
             .refreshable { store.requestRefresh() }
+        }
+    }
+}
+
+private struct WatchBriefingCard: View {
+    let date: Date
+    let completedCount: Int
+    let totalCount: Int
+    let copy: WatchCopy
+
+    var body: some View {
+        let hour = Calendar.current.component(.hour, from: date)
+        if hour < 12 {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(copy.morningBriefing).font(.headline)
+                    Text(copy.morningPlan(totalCount)).font(.caption).foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "sunrise.fill").foregroundStyle(.orange)
+            }
+            .accessibilityIdentifier("watch.briefing.morning")
+        } else if hour >= 20 {
+            Label {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(copy.eveningBriefing).font(.headline)
+                    Text(completedCount == totalCount && totalCount > 0
+                         ? copy.allDone
+                         : copy.eveningProgress(completed: completedCount, total: totalCount))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "moon.stars.fill").foregroundStyle(.indigo)
+            }
+            .accessibilityIdentifier("watch.briefing.evening")
         }
     }
 }
