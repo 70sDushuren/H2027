@@ -1,19 +1,44 @@
-//
-//  H2027Companion_Watch_AppTests.swift
-//  H2027Companion Watch AppTests
-//
-//  Created by Shawn Huang on 11/16/26.
-//
-
+import Foundation
 import Testing
 @testable import H2027Companion_Watch_App
 
-struct H2027Companion_Watch_AppTests {
+struct WatchDataModelTests {
+    @Test
+    func watchDoseStatusRoundTripsThroughCodable() throws {
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-        // Swift Testing Documentation
-        // https://developer.apple.com/documentation/testing
+        for status in [WatchDoseStatus.taken, .snoozed, .skipped, .missed] {
+            let data = try encoder.encode(status)
+            #expect(try decoder.decode(WatchDoseStatus.self, from: data) == status)
+        }
     }
 
+    @Test
+    func doseActionPreservesIdempotencyIdentifier() throws {
+        let action = WatchDoseAction(
+            id: UUID(),
+            medicationID: UUID(),
+            scheduleID: UUID(),
+            scheduledAt: Date(timeIntervalSince1970: 1_000),
+            recordedAt: Date(timeIntervalSince1970: 1_100),
+            dosage: 500,
+            unit: "mg",
+            status: WatchDoseStatus.taken.rawValue
+        )
+
+        let data = try JSONEncoder().encode(action)
+        let decoded = try JSONDecoder().decode(WatchDoseAction.self, from: data)
+
+        #expect(decoded == action)
+    }
+
+    @Test
+    func watchCopyUsesSelectedLanguage() {
+        #expect(WatchCopy(languageCode: "en-GB").taken == "Taken")
+        #expect(WatchCopy(languageCode: "zh-Hans").taken == "已服用")
+        #expect(WatchCopy(languageCode: "zh-Hant").recordDose == "記錄服藥")
+        #expect(WatchCopy(languageCode: "yue-Hant").snooze == "遲啲提醒")
+        #expect(WatchCopy(languageCode: "pt-PT").skip == "Ignorar")
+    }
 }

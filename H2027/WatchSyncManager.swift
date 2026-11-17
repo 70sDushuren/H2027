@@ -74,6 +74,19 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
             receive(message)
         }
     }
+    nonisolated func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        guard let data = message["doseAction"] as? Data else {
+            replyHandler(["accepted": false])
+            return
+        }
+        Task { @MainActor in
+            replyHandler(["accepted": self.importAction(data)])
+        }
+    }
 
     private func transmitLatestSnapshot(immediately: Bool = false) {
         guard let latestSnapshotData, WCSession.isSupported(),
@@ -92,17 +105,23 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         Task { @MainActor in self.importAction(data) }
     }
 
-    private func importAction(_ data: Data) {
+    @discardableResult
+    private func importAction(_ data: Data) -> Bool {
         guard let action = try? decoder.decode(WatchDoseAction.self, from: data),
-              let status = DoseStatus(rawValue: action.status), let modelContainer else { return }
+              let status = DoseStatus(rawValue: action.status), let modelContainer else { return false }
         let context = ModelContext(modelContainer)
         let actionID = action.id
         let descriptor = FetchDescriptor<DoseEvent>(predicate: #Predicate { $0.id == actionID })
-        guard (try? context.fetchCount(descriptor)) == 0 else { return }
+        guard (try? context.fetchCount(descriptor)) == 0 else { return true }
         context.insert(DoseEvent(id: action.id, medicationID: action.medicationID,
                                  scheduleID: action.scheduleID, scheduledAt: action.scheduledAt,
                                  recordedAt: action.recordedAt, dosage: action.dosage, unit: action.unit,
                                  status: status, source: .watch))
-        try? context.save()
+        do {
+            try context.save()
+            return true
+        } catch {
+            return false
+        }
     }
 }
