@@ -36,9 +36,47 @@ struct ContentView: View {
                         }
                     }
                 }
+                NavigationLink {
+                    WatchSettingsView()
+                } label: {
+                    Label(store.copy.settings, systemImage: "gearshape")
+                }
             }
             .navigationTitle(store.copy.today)
             .refreshable { store.requestRefresh() }
+        }
+    }
+}
+
+private struct WatchSettingsView: View {
+    @Environment(WatchStore.self) private var store
+
+    var body: some View {
+        List {
+            Section {
+                LabeledContent(store.copy.reminders) {
+                    Text(notificationStatus)
+                        .foregroundStyle(.secondary)
+                }
+                if store.notificationAuthorizationState == .notRequested {
+                    Button(store.copy.enableReminders, systemImage: "bell.badge") {
+                        Task { await store.requestNotificationAuthorization() }
+                    }
+                }
+                Text(store.copy.reminderExplanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle(store.copy.settings)
+        .task { await store.refreshNotificationAuthorizationState() }
+    }
+
+    private var notificationStatus: String {
+        switch store.notificationAuthorizationState {
+        case .notRequested: store.copy.remindersNotRequested
+        case .authorized: store.copy.remindersEnabled
+        case .denied: store.copy.remindersDenied
         }
     }
 }

@@ -41,4 +41,11 @@ struct WatchDataModelTests {
         #expect(WatchCopy(languageCode: "yue-Hant").snooze == "遲啲提醒")
         #expect(WatchCopy(languageCode: "pt-PT").skip == "Ignorar")
     }
+
+    @Test
+    func reminderBodyIncludesDoseAndOptionalMealGuidance() {
+        let copy = WatchCopy(languageCode: "en-GB")
+        #expect(copy.reminderBody(dosage: 500, unit: "mg", mealNote: "") == "Take 500 mg")
+        #expect(copy.reminderBody(dosage: 1, unit: "tablet", mealNote: "With food") == "Take 1 tablet · With food")
+    }
 }

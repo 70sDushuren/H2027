@@ -1,6 +1,13 @@
 import Foundation
 import Observation
+import UserNotifications
 import WatchConnectivity
+
+enum WatchNotificationAuthorizationState: Equatable {
+    case notRequested
+    case authorized
+    case denied
+}
 
 enum WatchDoseStatus: String, Codable, Equatable {
     case taken
@@ -49,11 +56,12 @@ struct WatchDoseAction: Codable, Identifiable, Equatable {
 
 @Observable
 @MainActor
-final class WatchStore: NSObject, WCSessionDelegate {
+final class WatchStore: NSObject, WCSessionDelegate, UNUserNotificationCenterDelegate {
     var doses: [WatchDose] = []
     var languageCode = "zh-Hans"
     var isPhoneReachable = false
     var lastUpdatedAt: Date?
+    var notificationAuthorizationState = WatchNotificationAuthorizationState.notRequested
     private(set) var pendingActions: [WatchDoseAction] = []
 
     private let snapshotKey = "watchSnapshot"
@@ -69,6 +77,9 @@ final class WatchStore: NSObject, WCSessionDelegate {
         super.init()
         restoreSnapshot()
         restorePendingActions()
+        configureNotificationCategories()
+        UNUserNotificationCenter.current().delegate = self
+        Task { await refreshNotificationAuthorizationState() }
         guard WCSession.isSupported() else { return }
         WCSession.default.delegate = self
         WCSession.default.activate()
@@ -91,6 +102,31 @@ final class WatchStore: NSObject, WCSessionDelegate {
         pendingActions.append(action)
         persistPendingActions()
         transmit(action)
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notificationIdentifier(for: dose)])
+    }
+
+    func requestNotificationAuthorization() async {
+        do {
+            _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+        } catch {
+            notificationAuthorizationState = .denied
+        }
+        await refreshNotificationAuthorizationState()
+    }
+
+    func refreshNotificationAuthorizationState() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            notificationAuthorizationState = .authorized
+            scheduleDoseReminders()
+        case .denied:
+            notificationAuthorizationState = .denied
+        case .notDetermined:
+            notificationAuthorizationState = .notRequested
+        @unknown default:
+            notificationAuthorizationState = .notRequested
+        }
     }
 
     func requestRefresh() {
@@ -140,6 +176,8 @@ final class WatchStore: NSObject, WCSessionDelegate {
         }
         persistPendingActions()
         UserDefaults.standard.set(data, forKey: snapshotKey)
+        configureNotificationCategories()
+        if notificationAuthorizationState == .authorized { scheduleDoseReminders() }
     }
 
     private func restoreSnapshot() {
@@ -189,6 +227,74 @@ final class WatchStore: NSObject, WCSessionDelegate {
         UserDefaults.standard.set(data, forKey: pendingActionsKey)
     }
 
+    private func configureNotificationCategories() {
+        let actions = [
+            UNNotificationAction(identifier: "dose.taken", title: copy.taken),
+            UNNotificationAction(identifier: "dose.snoozed", title: copy.snooze),
+            UNNotificationAction(identifier: "dose.skipped", title: copy.skip, options: .destructive),
+        ]
+        let category = UNNotificationCategory(
+            identifier: "watch.dose.reminder",
+            actions: actions,
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([category])
+    }
+
+    private func scheduleDoseReminders(now: Date = .now) {
+        let center = UNUserNotificationCenter.current()
+        center.removeAllPendingNotificationRequests()
+        for dose in doses where dose.status == nil && dose.scheduledAt > now {
+            let content = UNMutableNotificationContent()
+            content.title = dose.name
+            content.body = copy.reminderBody(dosage: dose.dosage, unit: dose.unit, mealNote: dose.mealNote)
+            content.sound = .default
+            content.categoryIdentifier = "watch.dose.reminder"
+            content.userInfo = ["doseID": dose.id]
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute],
+                from: dose.scheduledAt
+            )
+            let request = UNNotificationRequest(
+                identifier: notificationIdentifier(for: dose),
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            )
+            center.add(request)
+        }
+    }
+
+    private func notificationIdentifier(for dose: WatchDose) -> String {
+        "watch-dose-\(dose.id)"
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .sound]
+    }
+
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse
+    ) async {
+        guard let doseID = response.notification.request.content.userInfo["doseID"] as? String else { return }
+        let status: WatchDoseStatus?
+        switch response.actionIdentifier {
+        case "dose.taken": status = .taken
+        case "dose.snoozed": status = .snoozed
+        case "dose.skipped": status = .skipped
+        default: status = nil
+        }
+        guard let status else { return }
+        await MainActor.run {
+            guard let dose = self.doses.first(where: { $0.id == doseID }) else { return }
+            self.record(dose, status: status)
+        }
+    }
+
     static var preview: WatchStore {
         let store = WatchStore()
         store.doses = [
@@ -225,9 +331,21 @@ struct WatchCopy {
     var connected: String { choose("iPhone connected", "iPhone 已连接", "iPhone 已連線", "iPhone 已連線", "iPhone ligado") }
     var offline: String { choose("Works offline", "离线可用", "離線可用", "離線可用", "Funciona offline") }
     var lastSynced: String { choose("Last synced", "最后同步", "最後同步", "最後同步", "Última sincronização") }
+    var settings: String { choose("Settings", "设置", "設定", "設定", "Definições") }
+    var reminders: String { choose("Reminders", "提醒", "提醒", "提醒", "Lembretes") }
+    var enableReminders: String { choose("Enable Reminders", "启用提醒", "啟用提醒", "開啟提醒", "Ativar lembretes") }
+    var remindersEnabled: String { choose("Enabled", "已启用", "已啟用", "已開啟", "Ativados") }
+    var remindersDenied: String { choose("Permission denied", "权限已关闭", "權限已關閉", "權限已關閉", "Permissão recusada") }
+    var remindersNotRequested: String { choose("Not enabled", "尚未启用", "尚未啟用", "未開啟", "Não ativados") }
+    var reminderExplanation: String { choose("Get dose alerts directly on Apple Watch.", "直接在 Apple Watch 上接收用药提醒。", "直接在 Apple Watch 上接收用藥提醒。", "直接喺 Apple Watch 收到食藥提醒。", "Receba alertas de dose diretamente no Apple Watch.") }
 
     func pendingSync(_ count: Int) -> String {
         choose("\(count) pending", "\(count) 项待同步", "\(count) 項待同步", "\(count) 項等緊同步", "\(count) pendente(s)")
+    }
+
+    func reminderBody(dosage: Double, unit: String, mealNote: String) -> String {
+        let base = choose("Take \(dosage.formatted()) \(unit)", "服用 \(dosage.formatted()) \(unit)", "服用 \(dosage.formatted()) \(unit)", "服用 \(dosage.formatted()) \(unit)", "Tomar \(dosage.formatted()) \(unit)")
+        return mealNote.isEmpty ? base : "\(base) · \(mealNote)"
     }
 
     func status(_ value: WatchDoseStatus) -> String {
