@@ -1,14 +1,14 @@
 //
-//  H2027Watch_Watch_AppTests.swift
-//  H2027Watch Watch AppTests
+//  H2027Companion_Watch_AppTests.swift
+//  H2027Companion Watch AppTests
 //
 //  Created by Shawn Huang on 11/16/26.
 //
 
 import Testing
-@testable import H2027Watch_Watch_App
+@testable import H2027Companion_Watch_App
 
-struct H2027Watch_Watch_AppTests {
+struct H2027Companion_Watch_AppTests {
 
     @Test func example() async throws {
         // Write your test here and use APIs like `#expect(...)` to check expected conditions.

@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct H2027Watch_Watch_AppApp: App {
+struct H2027Companion_Watch_AppApp: App {
     @State private var store = WatchStore()
 
     var body: some Scene {

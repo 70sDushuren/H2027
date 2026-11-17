@@ -15,34 +15,8 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EF5E3AE730AB8A7E00BFCA04"
-               BuildableName = "H2027Watch Watch App.app"
-               ReferencedContainer = "container:H2027.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "EF5E3A9F30AB50E800BFCA04"
                BuildableName = "H2027.app"
-               ReferencedContainer = "container:H2027.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EF5E3AE230AB8A7E00BFCA04"
-               BuildableName = "H2027Watch.app"
                ReferencedContainer = "container:H2027.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -60,8 +34,8 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EF5E3B0030AB8A7F00BFCA04"
-               BuildableName = "H2027Watch Watch AppUITests.xctest"
+               BlueprintIdentifier = "EF5E3AAE30AB50E900BFCA04"
+               BuildableName = "H2027Tests.xctest"
                ReferencedContainer = "container:H2027.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -70,8 +44,8 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EF5E3AF630AB8A7F00BFCA04"
-               BuildableName = "H2027Watch Watch AppTests.xctest"
+               BlueprintIdentifier = "EF5E3AB830AB50E900BFCA04"
+               BuildableName = "H2027UITests.xctest"
                ReferencedContainer = "container:H2027.xcodeproj">
             </BuildableReference>
          </TestableReference>
@@ -92,8 +66,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EF5E3AE730AB8A7E00BFCA04"
-            BuildableName = "H2027Watch Watch App.app"
+            BlueprintIdentifier = "EF5E3A9F30AB50E800BFCA04"
+            BuildableName = "H2027.app"
             ReferencedContainer = "container:H2027.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -108,8 +82,8 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EF5E3AE730AB8A7E00BFCA04"
-            BuildableName = "H2027Watch Watch App.app"
+            BlueprintIdentifier = "EF5E3A9F30AB50E800BFCA04"
+            BuildableName = "H2027.app"
             ReferencedContainer = "container:H2027.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

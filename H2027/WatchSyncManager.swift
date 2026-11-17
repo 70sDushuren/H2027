@@ -37,6 +37,7 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
     private var modelContainer: ModelContainer?
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+    private var latestSnapshotData: Data?
 
     private override init() {
         super.init()
@@ -48,7 +49,6 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
     func configure(modelContainer: ModelContainer) { self.modelContainer = modelContainer }
 
     func send(doses: [ScheduledDose], languageCode: String) {
-        guard WCSession.isSupported(), WCSession.default.activationState == .activated else { return }
         let snapshot = WatchSnapshot(generatedAt: .now, languageCode: languageCode, doses: doses.map {
             WatchDosePayload(id: $0.id, medicationID: $0.medicationID, scheduleID: $0.scheduleID,
                              name: $0.medicationName, dosage: $0.dosage, unit: $0.unit,
@@ -56,14 +56,36 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
                              status: $0.recordedStatus?.rawValue)
         })
         guard let data = try? encoder.encode(snapshot) else { return }
-        try? WCSession.default.updateApplicationContext(["snapshot": data])
+        latestSnapshotData = data
+        transmitLatestSnapshot()
     }
 
-    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: (any Error)?) {}
+    nonisolated func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: (any Error)?) {
+        guard activationState == .activated else { return }
+        Task { @MainActor in self.transmitLatestSnapshot() }
+    }
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
     nonisolated func sessionDidDeactivate(_ session: WCSession) { session.activate() }
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) { receive(userInfo) }
-    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) { receive(message) }
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        if message["requestSnapshot"] as? Bool == true {
+            Task { @MainActor in self.transmitLatestSnapshot(immediately: true) }
+        } else {
+            receive(message)
+        }
+    }
+
+    private func transmitLatestSnapshot(immediately: Bool = false) {
+        guard let latestSnapshotData, WCSession.isSupported(),
+              WCSession.default.activationState == .activated else { return }
+#if os(iOS)
+        guard WCSession.default.isWatchAppInstalled else { return }
+#endif
+        try? WCSession.default.updateApplicationContext(["snapshot": latestSnapshotData])
+        if immediately, WCSession.default.isReachable {
+            WCSession.default.sendMessage(["snapshot": latestSnapshotData], replyHandler: nil)
+        }
+    }
 
     nonisolated private func receive(_ message: [String: Any]) {
         guard let data = message["doseAction"] as? Data else { return }

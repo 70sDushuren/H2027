@@ -70,6 +70,10 @@ final class WatchStore: NSObject, WCSessionDelegate {
         guard let data = context["snapshot"] as? Data else { return }
         Task { @MainActor in self.applySnapshot(data) }
     }
+    nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        guard let data = message["snapshot"] as? Data else { return }
+        Task { @MainActor in self.applySnapshot(data) }
+    }
 
     private func applySnapshot(_ data: Data) {
         guard let snapshot = try? decoder.decode(WatchSnapshot.self, from: data) else { return }

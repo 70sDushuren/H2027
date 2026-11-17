@@ -1,13 +1,13 @@
 //
-//  H2027Watch_Watch_AppUITests.swift
-//  H2027Watch Watch AppUITests
+//  H2027Companion_Watch_AppUITests.swift
+//  H2027Companion Watch AppUITests
 //
 //  Created by Shawn Huang on 11/16/26.
 //
 
 import XCTest
 
-final class H2027Watch_Watch_AppUITests: XCTestCase {
+final class H2027Companion_Watch_AppUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
